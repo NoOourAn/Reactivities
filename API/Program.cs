@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Persistence;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace API
 {
@@ -13,7 +12,30 @@ namespace API
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            ///to manage to get the services from host
+            ///and run the host later after migration
+            var host = CreateHostBuilder(args).Build();
+
+            //////////gets an error without these two lines
+            ///bcz of dependency injection
+            ///store any services we r gonna need in Main method inside scope var
+            using var scope = host.Services.CreateScope();
+            var services = scope.ServiceProvider;
+
+            ///create database if not existP
+            try
+            {
+                var context = services.GetRequiredService<DataContext>();
+                context.Database.Migrate();
+            }
+            catch (Exception e)
+            {
+                ///define object from logger interface to log el error
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(e, "An error occured during migrations");
+            }
+
+            host.Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
