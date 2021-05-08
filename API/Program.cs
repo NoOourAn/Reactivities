@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Persistence;
 using System;
+using System.Linq;
 
 namespace API
 {
@@ -16,8 +17,7 @@ namespace API
             ///and run the host later after migration
             var host = CreateHostBuilder(args).Build();
 
-            //////////gets an error without these two lines
-            ///bcz of dependency injection
+            //////////gets an error without these two lines bcz of dependency injection
             ///store any services we r gonna need in Main method inside scope var
             using var scope = host.Services.CreateScope();
             var services = scope.ServiceProvider;
@@ -27,15 +27,16 @@ namespace API
             {
                 var context = services.GetRequiredService<DataContext>();
                 context.Database.Migrate();
+                Seed.SeedData(context);
             }
             catch (Exception e)
             {
-                ///define object from logger interface to log el error
                 var logger = services.GetRequiredService<ILogger<Program>>();
                 logger.LogError(e, "An error occured during migrations");
             }
 
             host.Run();
+ 
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
